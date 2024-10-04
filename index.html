@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avoid the Fox</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            position: relative;
+        }
+        #gameBoard {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            grid-template-rows: repeat(4, 100px);
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        .tile {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            background-color: #fff;
+            border: 2px solid #ccc;
+            cursor: pointer;
+            user-select: none;
+        }
+        .tile.occupied {
+            cursor: default;
+            background-color: #e0e0e0;
+        }
+        .tile.highlight {
+            color: red;
+        }
+        #message {
+            font-size: 18px;
+            color: red;
+            margin-bottom: 20px;
+        }
+        .explosion {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: red;
+            border-radius: 50%;
+            animation: explode 2.89s ease-out forwards;
+        }
+        @keyframes explode {
+            0% {
+                transform: scale(1) translate(0, 0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(4) translate(var(--x), var(--y));
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gameBoard"></div>
+    <div id="message"></div>
+
+    <script>
+        const gameBoard = document.getElementById('gameBoard');
+        const message = document.getElementById('message');
+
+        // Limits for the number of F, O, and X
+        const letterLimits = { F: 5, O: 5, X: 6 };
+        let currentCount = { F: 0, O: 0, X: 0 };
+
+        // The game board grid
+        let board = Array(4).fill().map(() => Array(4).fill(''));
+
+        // Create the game board
+        function createBoard() {
+            for (let row = 0; row < 4; row++) {
+                for (let col = 0; col < 4; col++) {
+                    const tile = document.createElement('div');
+                    tile.classList.add('tile');
+                    tile.addEventListener('click', () => placeLetter(row, col, tile));
+                    gameBoard.appendChild(tile);
+                }
+            }
+        }
+
+        // Place a letter based on the remaining counts of F, O, and X
+        function placeLetter(row, col, tile) {
+            if (board[row][col] !== '') return;
+
+            const availableLetters = getAvailableLetters();
+            if (availableLetters.length === 0) return;
+
+            const randomLetter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
+            board[row][col] = randomLetter;
+            currentCount[randomLetter]++;
+            tile.textContent = randomLetter;
+            tile.classList.add('occupied');
+
+            const foxLine = checkForFox();
+            if (foxLine) {
+                highlightFox(foxLine);
+                message.textContent = 'You lost! You made the word "FOX".';
+                gameBoard.style.pointerEvents = 'none';
+                triggerExplosion();
+            }
+        }
+
+        // Get the available letters based on the remaining counts
+        function getAvailableLetters() {
+            return Object.keys(letterLimits).filter(letter => currentCount[letter] < letterLimits[letter]);
+        }
+
+        // Check if the word "FOX" is formed and return the line that contains it
+        function checkForFox() {
+            // Check rows
+            for (let row = 0; row < 4; row++) {
+                const line = board[row];
+                if (line.join('') === 'FOX') {
+                    return [[row, 0], [row, 1], [row, 2]];
+                }
+            }
+
+            // Check columns
+            for (let col = 0; col < 4; col++) {
+                const line = [board[0][col], board[1][col], board[2][col]];
+                if (line.join('') === 'FOX') {
+                    return [[0, col], [1, col], [2, col]];
+                }
+            }
+
+            // Check diagonals
+            const diagonal1 = [[0, 0], [1, 1], [2, 2]];
+            const diagonal2 = [[0, 2], [1, 1], [2, 0]];
+
+            const diag1Check = diagonal1.map(([r, c]) => board[r][c]).join('');
+            if (diag1Check === 'FOX') return diagonal1;
+
+            const diag2Check = diagonal2.map(([r, c]) => board[r][c]).join('');
+            if (diag2Check === 'FOX') return diagonal2;
+
+            return false;
+        }
+
+        // Highlight the "FOX" word on the board
+        function highlightFox(positions) {
+            positions.forEach(([row, col]) => {
+                const tile = gameBoard.children[row * 4 + col];
+                tile.classList.add('highlight');
+            });
+        }
+
+        // Trigger an explosion of colorful cubes
+        function triggerExplosion() {
+            for (let i = 0; i < 50; i++) {
+                const explosion = document.createElement('div');
+                explosion.classList.add('explosion');
+                explosion.style.backgroundColor = getRandomColor();
+                explosion.style.setProperty('--x', `${Math.random() * 800 - 400}px`);
+                explosion.style.setProperty('--y', `${Math.random() * 600 - 300}px`);
+                document.body.appendChild(explosion);
+
+                setTimeout(() => {
+                    explosion.remove();
+                }, 2890); // Remove the explosion div after 2.89 seconds
+            }
+        }
+
+        // Get a random color
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        // Initialize the game
+        createBoard();
+    </script>
+
+</body>
+</html>
